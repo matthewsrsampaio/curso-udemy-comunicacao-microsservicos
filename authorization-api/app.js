@@ -8,10 +8,6 @@ const PORT = env.PORT || 8080;
 
 db.createInitialData();
 
-app.use(express.json());
-
-app.use(userRoutes);
-
 app.get("/api/status", (req, res) => {
     return res.status(200).json({
         service: "Authorization-API",
@@ -19,6 +15,10 @@ app.get("/api/status", (req, res) => {
         status: "up",
     });
 });
+
+app.use(express.json());
+
+app.use(userRoutes);
 
 app.listen(PORT, () => {
     console.info(`Server started successfully at port ${PORT}`);

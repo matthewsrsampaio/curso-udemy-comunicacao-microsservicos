@@ -1,17 +1,19 @@
-import UserRepository from "../repository/UserRepository.js";
-import * as httpStatus from "../../../config/constants/httpStatus.js";
-import * as secrets from "../../../config/constants/secrets.js";
-import UserException from "../exception/UserException.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import UserRepository from "../repository/UserRepository.js";
+import UserException from "../exception/UserException.js";
+import * as httpStatus from "../../../config/constants/httpStatus.js";
+import * as secrets from "../../../config/constants/secrets.js";
 
 class UserService {
     async findByEmail(req) {
         try {
-            const {email} = req.params;
+            const { email } = req.params;
+            const { authUser } = req;
             this.validateRequestData(email);
             let user = await UserRepository.findByEmail(email);
             this.validateUserNotFound(user);
+            this.validateAuthenticatedUser(user, authUser);
             return {
                 status: httpStatus.SUCCESS,
                 user: {
@@ -22,13 +24,13 @@ class UserService {
             };
         } catch (err) {
             return {
-                status: err.status ? err.status : httpStatus.INTERNAL_SERVER_ERROR,
-                message: err.status,
-        };
+                status: err.status,
+                message: err.message,
+            };
+        }
     }
-}
     validateRequestData(email) {
-        if (!email) {
+        if(!email) {
            throw new UserException(httpStatus.BAD_REQUEST, "User email was not informed.");
         }
     }
@@ -36,6 +38,12 @@ class UserService {
     validateUserNotFound(user) {
         if(!user) {
             throw new UserException(httpStatus.BAD_REQUEST, "User was not found.");
+        }
+    }
+
+    validateAuthenticatedUser(user, authUser) {
+        if(!authUser || user.id !== authUser.id) {
+            throw new UserException(httpStatus.FORBIDDEN, "You cannot see this user data.");
         }
     }
 
@@ -57,7 +65,7 @@ class UserService {
         } catch (err) {
             return {
                 status: err.status ? err.status : httpStatus.INTERNAL_SERVER_ERROR,
-                message: err.status,
+                message: err.message,
             };
         }
     }
