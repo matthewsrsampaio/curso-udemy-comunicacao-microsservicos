@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ProductResponse {
     private Integer id;
+    @JsonProperty("quantity_available")
     private Integer quantityAvailable;
     @JsonProperty("created_at")
     @JsonFormat(pattern = "dd/MM/yyyy HH:mm:ss")

@@ -8,7 +8,7 @@ import org.springframework.beans.BeanUtils;
 public class SupplierResponse {
 
     private Integer id;
-    private String description;
+    private String name;
 
     public static SupplierResponse of(Supplier supplier) {
         var response = new SupplierResponse();
