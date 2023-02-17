@@ -4,9 +4,9 @@ server:
 spring:
   main:
     allow-circular-references: true
+    allow-bean-definition-overriding: true
   application:
     name: product-api
-
 
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -33,5 +33,5 @@ spring:
 
 app-config:
   secrets:
-    api-secret: ${API-SECRET:YXV0aC1hcGktc2VjcmV0LWRldi0xMjM0NTY=}
+    api-secret: ${API_SECRET:YXV0aC1hcGktc2VjcmV0LWRldi0xMjM0NTY=}
 
