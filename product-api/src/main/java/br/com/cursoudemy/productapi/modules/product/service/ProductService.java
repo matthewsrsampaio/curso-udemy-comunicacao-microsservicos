@@ -8,7 +8,9 @@ import br.com.cursoudemy.productapi.modules.product.dto.ProductResponse;
 import br.com.cursoudemy.productapi.modules.product.model.Product;
 import br.com.cursoudemy.productapi.modules.product.repository.ProductRepository;
 import br.com.cursoudemy.productapi.modules.supplier.service.SupplierService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,16 +19,39 @@ import java.util.stream.Collectors;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 @Service
+@AllArgsConstructor(onConstructor_ = { @Lazy})
 public class ProductService {
 
     public static final Integer ZERO = 0;
 
     @Autowired
     private ProductRepository productRepository;
-    @Autowired
+    @Lazy
     private CategoryService categoryService;
-    @Autowired
+    @Lazy
     private SupplierService supplierService;
+
+    public ProductResponse save(ProductRequest request) {
+        validateProductDataInformed(request);
+        validateCategoryAndSupplierIdInformed(request);
+        var category = categoryService.findById(request.getCategoryId());
+        var supplier =  supplierService.findById(request.getSupplierId());
+        var product = productRepository.save(Product.of(request, supplier, category));
+        return ProductResponse.of(product);
+    }
+
+    public ProductResponse update(ProductRequest request,
+                                  Integer id) {
+        validateProductDataInformed(request);
+        validateInformedId(id);
+        validateCategoryAndSupplierIdInformed(request);
+        var category = categoryService.findById(request.getCategoryId());
+        var supplier =  supplierService.findById(request.getSupplierId());
+        var product = Product.of(request, supplier, category);
+        product.setId(id);
+        productRepository.save(product);
+        return ProductResponse.of(product);
+    }
 
     private void validateProductDataInformed(ProductRequest request) {
         if (isEmpty(request.getName())) {
@@ -91,28 +116,6 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    public ProductResponse save(ProductRequest request) {
-        validateProductDataInformed(request);
-        validateCategoryAndSupplierIdInformed(request);
-        var category = categoryService.findById(request.getCategoryId());
-        var supplier =  supplierService.findById(request.getSupplierId());
-        var product = productRepository.save(Product.of(request, supplier, category));
-        return ProductResponse.of(product);
-    }
-
-    public ProductResponse update(ProductRequest request,
-                                  Integer id) {
-        validateProductDataInformed(request);
-        validateInformedId(id);
-        validateCategoryAndSupplierIdInformed(request);
-        var category = categoryService.findById(request.getCategoryId());
-        var supplier =  supplierService.findById(request.getSupplierId());
-        var product = Product.of(request,supplier, category);
-        product.setId(id);
-        productRepository.save(product);
-        return ProductResponse.of(product);
-    }
-
     public ProductResponse findByIdResponse(Integer id) {
         return ProductResponse.of(findById(id));
     }
@@ -126,12 +129,12 @@ public class ProductService {
                 .orElseThrow(() -> new ValidationException("There's no product for the given ID."));
     }
 
-    public Boolean existsByCategoryId(Integer id) {
-        return productRepository.existsByCategoryId(id);
+    public Boolean existsByCategoryId(Integer categoryId) {
+        return productRepository.existsByCategoryId(categoryId);
     }
 
-    public Boolean existsBySupplierId(Integer id) {
-        return productRepository.existsBySupplierId(id);
+    public Boolean existsBySupplierId(Integer supplierId) {
+        return productRepository.existsBySupplierId(supplierId);
     }
 
     public SuccessResponse delete(Integer id) {

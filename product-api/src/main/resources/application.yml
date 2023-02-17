@@ -2,8 +2,11 @@ server:
   port: ${PORT:8081}
 
 spring:
+  main:
+    allow-circular-references: true
   application:
     name: product-api
+
 
   datasource:
     driver-class-name: org.postgresql.Driver
@@ -28,5 +31,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect #Precisei rodar um dialeto mais atual, a versão 9 não estava funcionando.
 
-
+app-config:
+  secrets:
+    api-secret: ${API-SECRET:YXV0aC1hcGktc2VjcmV0LWRldi0xMjM0NTY=}
 

@@ -7,7 +7,9 @@ import br.com.cursoudemy.productapi.modules.category.dto.CategoryResponse;
 import br.com.cursoudemy.productapi.modules.category.model.Category;
 import br.com.cursoudemy.productapi.modules.category.repository.CategoryRepository;
 import br.com.cursoudemy.productapi.modules.product.service.ProductService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +18,12 @@ import java.util.stream.Collectors;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 @Service //permite a injeção dessa classe dentro de outra classe
+@AllArgsConstructor(onConstructor_ = { @Lazy})
 public class CategoryService {
+
     @Autowired
     private CategoryRepository categoryRepository;
-    @Autowired
+    @Lazy
     private ProductService productService;
 
     public CategoryResponse findByIdResponse(Integer id) {
@@ -63,7 +67,8 @@ public class CategoryService {
         validateCategoryNameInformed(request);
         validateInformedId(id);
         var category = Category.of(request);
-        categoryRepository.save(Category.of(request));
+        category.setId(id);
+        categoryRepository.save(category);
         return CategoryResponse.of(category);
     }
 

@@ -4,17 +4,17 @@ import br.com.cursoudemy.productapi.config.exception.SuccessResponse;
 import br.com.cursoudemy.productapi.modules.supplier.dto.SupplierRequest;
 import br.com.cursoudemy.productapi.modules.supplier.dto.SupplierResponse;
 import br.com.cursoudemy.productapi.modules.supplier.service.SupplierService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api/supplier")
 public class SupplierController {
 
-    @Autowired
-    private SupplierService supplierService;
+    private final SupplierService supplierService;
 
     @PostMapping
     public SupplierResponse save(@RequestBody SupplierRequest request) {
@@ -22,7 +22,9 @@ public class SupplierController {
     }
 
     @GetMapping
-    public List<SupplierResponse> findAll() { return supplierService.findAll(); }
+    public List<SupplierResponse> findAll() {
+        return supplierService.findAll();
+    }
 
     @GetMapping("{id}")
     public SupplierResponse findById(@PathVariable Integer id) {
@@ -30,7 +32,7 @@ public class SupplierController {
     }
 
     @GetMapping("name/{name}")
-    public List<SupplierResponse> findAByName(@PathVariable String name) {
+    public List<SupplierResponse> findByName(@PathVariable String name) {
         return supplierService.findByName(name);
     }
 
@@ -41,6 +43,8 @@ public class SupplierController {
     }
 
     @DeleteMapping("{id}")
-    public SuccessResponse delete(@PathVariable Integer id) { return supplierService.delete(id); }
+    public SuccessResponse delete(@PathVariable Integer id) {
+        return supplierService.delete(id);
+    }
 
 }

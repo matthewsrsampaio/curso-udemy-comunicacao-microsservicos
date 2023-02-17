@@ -6,7 +6,6 @@ import org.springframework.beans.BeanUtils;
 
 @Data
 public class SupplierResponse {
-
     private Integer id;
     private String name;
 

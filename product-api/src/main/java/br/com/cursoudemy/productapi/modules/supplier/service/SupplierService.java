@@ -7,7 +7,8 @@ import br.com.cursoudemy.productapi.modules.supplier.dto.SupplierRequest;
 import br.com.cursoudemy.productapi.modules.supplier.dto.SupplierResponse;
 import br.com.cursoudemy.productapi.modules.supplier.model.Supplier;
 import br.com.cursoudemy.productapi.modules.supplier.repository.SupplierRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,11 +17,13 @@ import java.util.stream.Collectors;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 @Service
+@AllArgsConstructor(onConstructor_ = { @Lazy})
 public class SupplierService {
-    @Autowired
-    private SupplierRepository supplierRepository;
-    @Autowired
-    private ProductService productService;
+
+    private final SupplierRepository supplierRepository;
+
+    @Lazy
+    private final ProductService productService;
 
     public List<SupplierResponse> findAll() {
         return supplierRepository
@@ -32,7 +35,7 @@ public class SupplierService {
 
     public List<SupplierResponse> findByName(String name) {
         if (isEmpty(name)) {
-            throw new ValidationException("The supplier must be informed.");
+            throw new ValidationException("The supplier name must be informed.");
         }
         return supplierRepository
                 .findByNameIgnoreCaseContaining(name)
@@ -46,17 +49,15 @@ public class SupplierService {
     }
 
     public Supplier findById(Integer id) {
-        if (isEmpty(id)) {
-            throw new ValidationException("The supplier ID was not informed.");
-        }
+        validateInformedId(id);
         return supplierRepository
                 .findById(id)
-                .orElseThrow(() -> new ValidationException("There's no category for the given ID."));
+                .orElseThrow(() -> new ValidationException("There's no supplier for the given ID."));
     }
 
     public SupplierResponse save(SupplierRequest request) {
         validateSupplierNameInformed(request);
-        var supplier  = supplierRepository.save(Supplier.of(request));
+        var supplier = supplierRepository.save(Supplier.of(request));
         return SupplierResponse.of(supplier);
     }
 
@@ -78,16 +79,16 @@ public class SupplierService {
 
     public SuccessResponse delete(Integer id) {
         validateInformedId(id);
-        if(productService.existsBySupplierId(id)) {
+        if (productService.existsBySupplierId(id)) {
             throw new ValidationException("You cannot delete this supplier because it's already defined by a product.");
         }
         supplierRepository.deleteById(id);
-        return SuccessResponse.create("Supplier was deleted.");
+        return SuccessResponse.create("The supplier was deleted.");
     }
 
     private void validateInformedId(Integer id) {
         if (isEmpty(id)) {
-            throw new ValidationException("The supplier ID was not informed.");
+            throw new ValidationException("The supplier ID must be informed.");
         }
     }
 
