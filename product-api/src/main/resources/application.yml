@@ -3,8 +3,8 @@ server:
 
 spring:
   main:
-    allow-circular-references: true
-    allow-bean-definition-overriding: true
+    allow-circular-references: true # permite referencias circulares
+    allow-bean-definition-overriding: true # permite usar criar um bean de um serviço interno do próprio spring
   application:
     name: product-api
 
@@ -15,6 +15,14 @@ spring:
     password: 123456
     initialize: true
     maxActive: 3
+
+
+#    Setando rabbitMQ "Globalmente"
+    rabbitmq:
+      host: ${RABBIT_MQ_HOST:localhost}
+      port: ${RABBIT_MQ_PORT:5672}
+      username: ${RABBIT_MQ_USER:guest}
+      password: ${RABBIT_MQ_PASSWORD:guest}
 
   sql:
     init:
@@ -31,7 +39,22 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect #Precisei rodar um dialeto mais atual, a versão 9 não estava funcionando.
 
+# Aqui em baixo estarão coisas que são configuradas manualmente e localmente.
 app-config:
   secrets:
     api-secret: ${API_SECRET:YXV0aC1hcGktc2VjcmV0LWRldi0xMjM0NTY=}
+
+  rabbit:
+    exchange:
+      product: product.topic
+
+    routingKey:
+      product-stock: product-stock-update.routingKey
+      sales-confirmation: sales-confirmation.routingKey
+
+      queue:
+        product-stock: product-stock-update.queue
+        sales-confirmation: sales-confirmation.queue
+
+
 
