@@ -3,8 +3,9 @@ server:
 
 spring:
   main:
-    allow-circular-references: true # permite referencias circulares
+    #allow-circular-references: true # permite referencias circulares
     allow-bean-definition-overriding: true # permite usar criar um bean de um serviço interno do próprio spring
+
   application:
     name: product-api
 
@@ -44,6 +45,9 @@ app-config:
   secrets:
     api-secret: ${API_SECRET:YXV0aC1hcGktc2VjcmV0LWRldi0xMjM0NTY=}
 
+    services:
+      sales: http://${SALES_HOST:localhost}:${SALES_PORT:8082}
+
   rabbit:
     exchange:
       product: product.topic
@@ -55,6 +59,3 @@ app-config:
       queue:
         product-stock: product-stock-update.queue
         sales-confirmation: sales-confirmation.queue
-
-
-

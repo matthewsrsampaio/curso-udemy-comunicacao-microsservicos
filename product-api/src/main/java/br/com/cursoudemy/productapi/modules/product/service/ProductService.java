@@ -5,6 +5,7 @@ import br.com.cursoudemy.productapi.config.exception.ValidationException;
 import br.com.cursoudemy.productapi.modules.category.service.CategoryService;
 import br.com.cursoudemy.productapi.modules.product.dto.ProductRequest;
 import br.com.cursoudemy.productapi.modules.product.dto.ProductResponse;
+import br.com.cursoudemy.productapi.modules.product.dto.ProductStockDTO;
 import br.com.cursoudemy.productapi.modules.product.model.Product;
 import br.com.cursoudemy.productapi.modules.product.repository.ProductRepository;
 import br.com.cursoudemy.productapi.modules.supplier.service.SupplierService;
@@ -148,4 +149,9 @@ public class ProductService {
             throw new ValidationException("The product ID must be informed.");
         }
     }
+
+    public void updateProductStock(ProductStockDTO product) {
+
+    }
+
 }
