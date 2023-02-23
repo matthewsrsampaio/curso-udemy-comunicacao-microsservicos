@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductStockListener {
 
-    @Autowired
     private final ProductService productService;
 
     private final ObjectMapper objectMapper;
@@ -23,7 +22,7 @@ public class ProductStockListener {
     @RabbitListener(queues = "${app-config.rabbit.queue.product-stock}")
     public void receiveProductStockMessage(ProductStockDTO product) throws JsonProcessingException {
         log.info("Receiving message with data: {} and TransactionID: {}",
-                objectMapper.writeValueAsString(product),
+                objectMapper.writeValueAsString(product), //convertendo o objeto criado para JSON
                 product.getTransactionid());
         productService.updateProductStock(product);
     }

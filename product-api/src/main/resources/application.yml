@@ -1,3 +1,6 @@
+#A  T  E  N  Ç  Ã  O
+#Muito cuidado com a indentação nesse arquivo YML.
+
 server:
   port: ${PORT:8081}
 
@@ -18,7 +21,7 @@ spring:
     maxActive: 3
 
 
-#    Setando rabbitMQ "Globalmente"
+#    Setando o serviço do rabbitMQ
     rabbitmq:
       host: ${RABBIT_MQ_HOST:localhost}
       port: ${RABBIT_MQ_PORT:5672}
@@ -48,6 +51,8 @@ app-config:
     services:
       sales: http://${SALES_HOST:localhost}:${SALES_PORT:8082}
 
+
+  #Setando os caminho para o RabbitMQ
   rabbit:
     exchange:
       product: product.topic
@@ -56,6 +61,6 @@ app-config:
       product-stock: product-stock-update.routingKey
       sales-confirmation: sales-confirmation.routingKey
 
-      queue:
-        product-stock: product-stock-update.queue
-        sales-confirmation: sales-confirmation.queue
+    queue:
+      product-stock: product-stock-update.queue
+      sales-confirmation: sales-confirmation.queue

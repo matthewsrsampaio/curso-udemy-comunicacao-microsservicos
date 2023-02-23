@@ -20,17 +20,17 @@ import java.util.stream.Collectors;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 @Service
-@AllArgsConstructor(onConstructor_ = { @Lazy})
+@AllArgsConstructor
 public class ProductService {
 
     public static final Integer ZERO = 0;
 
-    @Autowired
-    private ProductRepository productRepository;
-    @Lazy
-    private CategoryService categoryService;
-    @Lazy
-    private SupplierService supplierService;
+    private final ProductRepository productRepository;
+    private final SupplierService supplierService;
+    private final CategoryService categoryService;
+//    private final SalesConfirmationSender salesConfirmationSender;
+//    private final SalesClient salesClient;
+//    private final ObjectMapper objectMapper;
 
     public ProductResponse save(ProductRequest request) {
         validateProductDataInformed(request);
