@@ -8,8 +8,10 @@ import br.com.cursoudemy.productapi.modules.product.dto.ProductResponse;
 import br.com.cursoudemy.productapi.modules.product.dto.ProductStockDTO;
 import br.com.cursoudemy.productapi.modules.product.model.Product;
 import br.com.cursoudemy.productapi.modules.product.repository.ProductRepository;
+import br.com.cursoudemy.productapi.modules.sales.dto.SalesConfirmationDTO;
 import br.com.cursoudemy.productapi.modules.supplier.service.SupplierService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 
 import static org.springframework.util.ObjectUtils.isEmpty;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class ProductService {
@@ -151,7 +154,27 @@ public class ProductService {
     }
 
     public void updateProductStock(ProductStockDTO product) {
+        try {
+            validateStockUpdateData(product);
+        } catch (Exception ex) {
+            log.error("Error while trying to update stock for message with error: {}", ex.getMessage(), ex);
+        }
+    }
 
+    private void validateStockUpdateData(ProductStockDTO product){
+        if (isEmpty(product) || isEmpty(product.getSalesId())) {
+            throw new ValidationException("The product data and the sales ID must be informed.");
+        }
+        if(isEmpty(product.getProducts())) {
+            throw new ValidationException("Sales products must be informed.");
+        }
+        product
+                .getProducts()
+                .forEach(salesProduct -> {
+                    if(isEmpty(salesProduct.getQuantity()) || isEmpty(salesProduct.getProductId())) {
+                        throw new ValidationException("ProductId and Quantity must be informed.");
+                    }
+                });
     }
 
 }
