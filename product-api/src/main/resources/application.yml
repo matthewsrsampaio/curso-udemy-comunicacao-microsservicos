@@ -45,12 +45,13 @@ spring:
 
 # Aqui em baixo estarão coisas que são configuradas manualmente e localmente.
 app-config:
+  # Setando o serviço de Sales
+  services:
+    sales: http://${SALES_HOST:localhost}:${SALES_PORT:8082}
+
+  # Segredo usado no token
   secrets:
     api-secret: ${API_SECRET:YXV0aC1hcGktc2VjcmV0LWRldi0xMjM0NTY=}
-
-    services:
-      sales: http://${SALES_HOST:localhost}:${SALES_PORT:8082}
-
 
   #Setando os caminho para o RabbitMQ
   rabbit:

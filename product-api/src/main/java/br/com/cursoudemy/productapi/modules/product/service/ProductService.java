@@ -3,19 +3,22 @@ package br.com.cursoudemy.productapi.modules.product.service;
 import br.com.cursoudemy.productapi.config.exception.SuccessResponse;
 import br.com.cursoudemy.productapi.config.exception.ValidationException;
 import br.com.cursoudemy.productapi.modules.category.service.CategoryService;
-import br.com.cursoudemy.productapi.modules.product.dto.ProductRequest;
-import br.com.cursoudemy.productapi.modules.product.dto.ProductResponse;
-import br.com.cursoudemy.productapi.modules.product.dto.ProductStockDTO;
+import br.com.cursoudemy.productapi.modules.product.dto.*;
 import br.com.cursoudemy.productapi.modules.product.model.Product;
 import br.com.cursoudemy.productapi.modules.product.repository.ProductRepository;
+import br.com.cursoudemy.productapi.modules.sales.client.SalesClient;
 import br.com.cursoudemy.productapi.modules.sales.dto.SalesConfirmationDTO;
+import br.com.cursoudemy.productapi.modules.sales.enums.SalesStatus;
+import br.com.cursoudemy.productapi.modules.sales.rabbitmq.SalesConfirmationSender;
 import br.com.cursoudemy.productapi.modules.supplier.service.SupplierService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,9 +34,9 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final SupplierService supplierService;
     private final CategoryService categoryService;
-//    private final SalesConfirmationSender salesConfirmationSender;
-//    private final SalesClient salesClient;
-//    private final ObjectMapper objectMapper;
+    private final SalesConfirmationSender salesConfirmationSender;
+    private final SalesClient salesClient;
+    private final ObjectMapper objectMapper;
 
     public ProductResponse save(ProductRequest request) {
         validateProductDataInformed(request);
@@ -153,11 +156,15 @@ public class ProductService {
         }
     }
 
+    //Método valida e atualiza os produtos
     public void updateProductStock(ProductStockDTO product) {
         try {
             validateStockUpdateData(product);
+            updateStock(product);
         } catch (Exception ex) {
             log.error("Error while trying to update stock for message with error: {}", ex.getMessage(), ex);
+            var rejectedMessage = new SalesConfirmationDTO(product.getSalesId(), SalesStatus.REJECTED);
+            salesConfirmationSender.sendSalesConfirmationMessage(rejectedMessage);
         }
     }
 
@@ -175,6 +182,65 @@ public class ProductService {
                         throw new ValidationException("ProductId and Quantity must be informed.");
                     }
                 });
+    }
+
+    /*Método verifica se está disponível em estoque.
+    Vai ser chamado lá dentro de updateProductStock*/
+    @Transactional
+    public void updateStock(ProductStockDTO product) {
+        var productForUpdate = new ArrayList<Product>();
+        product
+                .getProducts()
+                .forEach(salesProduct -> {
+                    var existingProduct = findById(salesProduct.getProductId()); //Procura no banco
+                    validateQuantityInStock(salesProduct, existingProduct);
+                    existingProduct.updateStock(salesProduct.getQuantity());
+                    productForUpdate.add(existingProduct);
+                });
+        if(!isEmpty(productForUpdate)) {
+            productRepository.saveAll(productForUpdate); //altera o banco
+            var approvedMessage = new SalesConfirmationDTO(product.getSalesId(), SalesStatus.APPROVED);//produz a mensagem
+            salesConfirmationSender.sendSalesConfirmationMessage(approvedMessage);//envia a msg reproduzida p o RabbitMQ
+        }
+    }
+
+    private void validateQuantityInStock(ProductQuantityDTO salesProduct,  Product existingProduct) {
+        if(salesProduct.getQuantity() > existingProduct.getQuantityAvailable()) {
+            throw new ValidationException(
+                    String.format("The product %s is out of stock.", existingProduct.getId()));
+        }
+    }
+
+    public ProductSalesResponse findProductSales(Integer id) {
+        var product = findById(id);
+        try {
+            var sales = salesClient
+                    .findSalesByProductId(product.getId())
+                    .orElseThrow(() -> new ValidationException("The sales was not found by this product."));
+            return ProductSalesResponse.of(product, sales.getSalesId());
+        } catch (Exception ex) {
+            throw new ValidationException("There was an error trying to get the sales products");
+        }
+    }
+
+    public SuccessResponse checkProductsStock(ProductCheckStockRequest request) {
+        if (isEmpty(request) || isEmpty(request.getProducts())) {
+            throw new ValidationException("The request data must be informed.");
+        }
+        request
+                .getProducts()
+                .forEach(this::validateStock);
+        return SuccessResponse.create("The stock is ok!");
+    }
+
+    private void validateStock(ProductQuantityDTO productQuantity) {
+        if (isEmpty(productQuantity.getProductId()) || isEmpty(productQuantity.getQuantity())) {
+            throw new ValidationException("Product ID and quantity must be informed.");
+        }
+        var product = findById(productQuantity.getProductId());
+        if (productQuantity.getQuantity() > product.getQuantityAvailable()) {
+            throw new ValidationException(String.format("The product %s is out of stock.", product.getId()));
+        }
     }
 
 }

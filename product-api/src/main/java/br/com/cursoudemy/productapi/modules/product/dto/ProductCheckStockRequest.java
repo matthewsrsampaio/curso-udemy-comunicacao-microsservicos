@@ -9,10 +9,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductStockDTO {
+public class ProductCheckStockRequest {
 
-    private String salesId;
-    private List<ProductQuantityDTO> products;
-    private String transactionId;
-
+    List<ProductQuantityDTO> products;
 }
