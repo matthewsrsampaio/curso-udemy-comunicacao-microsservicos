@@ -1,8 +1,8 @@
 import AuthException from "./AuthException.js";
 import jwt from "jsonwebtoken";
 import { promisify } from "util";
-import { API_SECRET } from "../constants/secrets.js";
-import { UNAUTHORIZED, INTERNAL_SERVER_ERROR } from "../constants/httpStatus.js";
+import { API_SECRET } from "../constants/Secrets.js";
+import { UNAUTHORIZED, INTERNAL_SERVER_ERROR } from "../constants/HttpStatus.js";
 
 let emptySpace = " ";
 

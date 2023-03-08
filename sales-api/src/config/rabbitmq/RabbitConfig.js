@@ -1,17 +1,35 @@
 import amqp from "amqplib/callback_api.js";
-import {RABBIT_MQ_URL} from "../constants/secrets.js";
+import {RABBIT_MQ_URL} from "../constants/Secrets.js";
 import {
     PRODUCT_TOPIC,
     PRODUCT_STOCK_UPDATE_QUEUE,
     PRODUCT_STOCK_UPDATE_ROUTING_KEY,
     SALES_CONFIRMATION_QUEUE,
     SALES_CONFIRMATION_ROUTING_KEY
-} from "./queue.js";
-import AuthException from "../auth/AuthException.js";
+} from "./Queue.js";
+import { listenToSalesConfimartionQueue } from "../../modules/sales/rabbitmq/SalesConfirmationListener.js";
 
 const TWO_SECONDS = 2000;
+const HALF_MINUTE = 30000;
+const CONTAINER_ENV = "container";
 
 export async function connectRabbitMq() {
+    const env = process.env.NODE_ENV;
+    if (CONTAINER_ENV === env) {
+        console.info("Waiting for RabbitMQ to start...");
+        setInterval(() => {
+            connectRabbitMqCreateQueues();
+        }, HALF_MINUTE)
+    } else {
+        connectRabbitMqCreateQueues();
+    }
+}
+
+// export async function connectRabbitMq() {
+//     await connectRabbitMqCreateQueues();
+// }
+
+async function connectRabbitMqCreateQueues() {
     amqp.connect(RABBIT_MQ_URL, {timeout: 180000}, (error, connection) => {
         if (error) {
             throw error;
@@ -36,9 +54,9 @@ export async function connectRabbitMq() {
             connection.close();
         }, TWO_SECONDS)
     });
-    // setTimeout(function () {
-    //     listenToSalesConfirmationQueue();
-    // }, TWO_SECONDS);
+    setTimeout(function () {
+        listenToSalesConfimartionQueue();
+    }, TWO_SECONDS);
 }
 
 function createQueue(connection, queue, routingKey, topic) {

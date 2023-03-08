@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { MONGO_DB_URL } from '../constants/secrets.js';
+import { MONGO_DB_URL } from '../constants/Secrets.js';
 
 export function connectMongoDb() {
     mongoose.connect(MONGO_DB_URL, {
