@@ -10,5 +10,5 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SalesProductResponse {
-    private List<String> salesId;
+    private List<String> salesIds;
 }

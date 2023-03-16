@@ -1,7 +1,6 @@
 import OrderRepository from "../repository/OrderRepository.js";
 import {sendMessageToProductStockUpdateQueue} from "../../product/rabbitmq/ProductStockUpdateSender.js";
-import * as httpStatus from "../../../config/constants/HttpStatus.js";
-import {BAD_REQUEST} from "../../../config/constants/HttpStatus.js";
+import {BAD_REQUEST, INTERNAL_SERVER_ERROR, SUCCESS} from "../../../config/constants/HttpStatus.js";
 import {PENDING} from "../status/OrderStatus.js";
 import OrderException from "../../product/exception/OrderException.js";
 import ProductClient from "../../product/client/ProductClient.js";
@@ -10,35 +9,44 @@ class OrderService {
     async createOrder(req) {
         try {
             let orderData = req.body;
+            const {transactionid, serviceid} = req.headers;
+            console.info(`Request to POST new order with data ${JSON.stringify(orderData)} 
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
             this.validateOrderData(orderData);
             const { authUser } = req;
             const { authorization } = req.headers;
-            let order = this.createInitialOrderData(orderData, authUser); // atenção aqui
-            await this.validateProductStock(order, authUser);
-            await this.validateProductStock(order, authorization);
+            let order = this.createInitialOrderData(orderData, authUser, transactionid, serviceid); // atenção aqui
+            await this.validateProductStock(order, authorization, transactionid);
             let createdOrder = await OrderRepository.save(order);
-            this.sendMessage(createdOrder);
-            return {
-                status: httpStatus.SUCCESS,
+            this.sendMessage(createdOrder, transactionid);
+            let response = {
+                status: SUCCESS,
                 createdOrder
             };
+            console.info(`Response to POST login with data ${JSON.stringify(response)} 
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
+            return response;
         }catch (err) {
             return {
                 status: err.status
                 ? err.status
-                : httpStatus.INTERNAL_SERVER_ERROR,
+                : INTERNAL_SERVER_ERROR,
                 message: err.message,
             };
         }
     }
 
-    createInitialOrderData(orderData, authUser) {
+    createInitialOrderData(orderData, authUser, transactionid, serviceid) {
         return {
             status: PENDING,
                 user: authUser,
             createdAt: new Date(),
             updatedAt: new Date(),
-            products: orderData,
+            transactionid,
+            serviceid,
+            products: orderData.products,
         };
     }
 
@@ -69,19 +77,118 @@ class OrderService {
         }
     }
 
-    async validateProductStock(order, token) {
-        let stockIsOut = await ProductClient.checkProductStock(order.products, token)
-        if (stockIsOut) {
-            throw new OrderException(BAD_REQUEST, "The stock is out for the products.");
+    async validateProductStock(order, token, transactionid) {
+        let stockIsOk = await ProductClient.checkProductStock(order, token, transactionid);
+        if (!stockIsOk) {
+            throw new OrderException(BAD_REQUEST, "The product chosen is NOT in stock.");
         }
     }
 
-    sendMessage(createdOrder) {
+    sendMessage(createdOrder, transactionid) {
         const message = {
             salesId: createdOrder.id,
             products: createdOrder.products,
+            transactionid,
         };
         sendMessageToProductStockUpdateQueue(message);
+    }
+
+    async findById(req) {
+        try {
+            const {id} = req.params;
+            const {transactionid, serviceid} = req.headers;
+            console.info(`Request to GET order by ID. ${id} 
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
+            this.validateInformedId(id);
+            const existingOrder = await OrderRepository.findById(id);
+            if (!existingOrder) {
+                throw new OrderException(BAD_REQUEST, "The order was not found.");
+            }
+            let response = {
+                status: SUCCESS,
+                existingOrder
+            };
+            console.info(`Response to GET order by ID ${id}: ${JSON.stringify(response)} 
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
+            return response;
+        }catch (err) {
+            return {
+                status: err.status
+                    ? err.status
+                    : INTERNAL_SERVER_ERROR,
+                message: err.message,
+            };
+        }
+    }
+
+    async findAll(req) {
+        try {
+            const { transactionid, serviceid } = req.headers;
+            console.info(`Request to GET all orders.
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
+            const orders = await OrderRepository.findAll();
+            if (!orders) {
+                throw new OrderException(BAD_REQUEST, "No orders were found.");
+            }
+            let response = {
+                status: SUCCESS,
+                orders,
+            };
+            console.info(`Response to GET all orders: ${JSON.stringify(response)} 
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
+            return response;
+        } catch (err) {
+            return {
+                status: err.status
+                    ? err.status
+                    : INTERNAL_SERVER_ERROR,
+                message: err.message,
+            };
+        }
+    }
+
+    async findByProductId(req) {
+        try {
+            const {productId} = req.params;
+            const {transactionid, serviceid} = req.headers;
+            console.info(`Request to GET order by productID. ${productId} 
+            | [transactionID: ${transactionid} 
+            | serviceID: ${serviceid}]`);
+            this.validateInformedProductId(productId);
+            const orders = await OrderRepository.findByProductId(productId);
+            if (!orders) {
+                throw new OrderException(BAD_REQUEST, "No orders were found.");
+            }
+            let response = {
+                status: SUCCESS,
+                salesId: orders.map((order) => {return order.id})
+            };
+            console.info(`Request to GET order by productID. ${JSON.stringify(response)}
+            | [transactionID: ${transactionid}
+            | serviceID: ${serviceid}]`);
+            return response;
+        } catch (err) {
+            return {
+                status: err.status ? err.status : INTERNAL_SERVER_ERROR,
+                message: err.message,
+            };
+        }
+    }
+
+    validateInformedId(id) {
+        if (!id) {
+            throw new OrderException(BAD_REQUEST, "The order ID must be informed.");
+        }
+    }
+
+    validateInformedProductId(id) {
+        if (!id) {
+            throw new OrderException(BAD_REQUEST, "The order's productId must be informed.");
+        }
     }
 
 }

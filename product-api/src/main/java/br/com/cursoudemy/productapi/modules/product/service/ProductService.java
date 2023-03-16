@@ -8,13 +8,13 @@ import br.com.cursoudemy.productapi.modules.product.model.Product;
 import br.com.cursoudemy.productapi.modules.product.repository.ProductRepository;
 import br.com.cursoudemy.productapi.modules.sales.client.SalesClient;
 import br.com.cursoudemy.productapi.modules.sales.dto.SalesConfirmationDTO;
+import br.com.cursoudemy.productapi.modules.sales.dto.SalesProductResponse;
 import br.com.cursoudemy.productapi.modules.sales.enums.SalesStatus;
 import br.com.cursoudemy.productapi.modules.sales.rabbitmq.SalesConfirmationSender;
 import br.com.cursoudemy.productapi.modules.supplier.service.SupplierService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static br.com.cursoudemy.productapi.config.RequestUtil.getCurrentRequest;
 import static org.springframework.util.ObjectUtils.isEmpty;
 
 @Slf4j
@@ -29,20 +30,22 @@ import static org.springframework.util.ObjectUtils.isEmpty;
 @AllArgsConstructor
 public class ProductService {
 
-    public static final Integer ZERO = 0;
+    private static final Integer ZERO = 0;
+    private static final String AUTHORIZATION = "Authorization";
+    private static final String TRANSACTION_ID = "transactionid";
+    private static final String SERVICE_ID = "serviceid";
 
     private final ProductRepository productRepository;
     private final SupplierService supplierService;
     private final CategoryService categoryService;
     private final SalesConfirmationSender salesConfirmationSender;
     private final SalesClient salesClient;
-    private final ObjectMapper objectMapper;
 
     public ProductResponse save(ProductRequest request) {
         validateProductDataInformed(request);
         validateCategoryAndSupplierIdInformed(request);
         var category = categoryService.findById(request.getCategoryId());
-        var supplier =  supplierService.findById(request.getSupplierId());
+        var supplier = supplierService.findById(request.getSupplierId());
         var product = productRepository.save(Product.of(request, supplier, category));
         return ProductResponse.of(product);
     }
@@ -53,7 +56,7 @@ public class ProductService {
         validateInformedId(id);
         validateCategoryAndSupplierIdInformed(request);
         var category = categoryService.findById(request.getCategoryId());
-        var supplier =  supplierService.findById(request.getSupplierId());
+        var supplier = supplierService.findById(request.getSupplierId());
         var product = Product.of(request, supplier, category);
         product.setId(id);
         productRepository.save(product);
@@ -68,9 +71,8 @@ public class ProductService {
             throw new ValidationException("The product's quantity was not informed.");
         }
         if (request.getQuantityAvailable() <= ZERO) {
-            throw new ValidationException(("The quantity should not be less or equal to zero."));
+            throw new ValidationException("The quantity should not be less or equal to zero.");
         }
-
     }
 
     private void validateCategoryAndSupplierIdInformed(ProductRequest request) {
@@ -78,7 +80,7 @@ public class ProductService {
             throw new ValidationException("The category ID was not informed.");
         }
         if (isEmpty(request.getSupplierId())) {
-            throw new ValidationException("The supplier ID was nor informed.");
+            throw new ValidationException("The supplier ID was not informed.");
         }
     }
 
@@ -92,7 +94,7 @@ public class ProductService {
 
     public List<ProductResponse> findByName(String name) {
         if (isEmpty(name)) {
-            throw new ValidationException("The supplier must be informed.");
+            throw new ValidationException("The product name must be informed.");
         }
         return productRepository
                 .findByNameIgnoreCaseContaining(name)
@@ -103,7 +105,7 @@ public class ProductService {
 
     public List<ProductResponse> findBySupplierId(Integer supplierId) {
         if (isEmpty(supplierId)) {
-            throw new ValidationException("The product's supplier ID must be informed.");
+            throw new ValidationException("The product' supplier ID name must be informed.");
         }
         return productRepository
                 .findBySupplierId(supplierId)
@@ -114,7 +116,7 @@ public class ProductService {
 
     public List<ProductResponse> findByCategoryId(Integer categoryId) {
         if (isEmpty(categoryId)) {
-            throw new ValidationException("The product's category ID must be informed.");
+            throw new ValidationException("The product' category ID name must be informed.");
         }
         return productRepository
                 .findByCategoryId(categoryId)
@@ -127,10 +129,8 @@ public class ProductService {
         return ProductResponse.of(findById(id));
     }
 
-    public Product findById(Integer id) {
-        if (isEmpty(id)){
-            throw new ValidationException("The product ID must be informed.");
-        }
+    public Product findById(Integer id) { //foi modificado
+        validateInformedId(id);
         return productRepository
                 .findById(id)
                 .orElseThrow(() -> new ValidationException("There's no product for the given ID."));
@@ -146,40 +146,47 @@ public class ProductService {
 
     public SuccessResponse delete(Integer id) {
         validateInformedId(id);
+        if (!productRepository.existsById(id)) {
+            throw new ValidationException("The product does not exists.");
+        }
+        var sales = getSalesByProductId(id);
+        if (!isEmpty(sales.getSalesIds())) {
+            throw new ValidationException("The product cannot be deleted. There are sales for it.");
+        }
         productRepository.deleteById(id);
-        return SuccessResponse.create("Product was deleted.");
+        return SuccessResponse.create("The product was deleted.");
     }
 
     private void validateInformedId(Integer id) {
         if (isEmpty(id)) {
-            throw new ValidationException("The product ID must be informed.");
+            throw new ValidationException("The supplier ID must be informed.");
         }
     }
 
-    //Método valida e atualiza os produtos
     public void updateProductStock(ProductStockDTO product) {
         try {
             validateStockUpdateData(product);
             updateStock(product);
         } catch (Exception ex) {
             log.error("Error while trying to update stock for message with error: {}", ex.getMessage(), ex);
-            var rejectedMessage = new SalesConfirmationDTO(product.getSalesId(), SalesStatus.REJECTED);
+            var rejectedMessage = new SalesConfirmationDTO(product.getSalesId(), SalesStatus.REJECTED, product.getTransactionid());
             salesConfirmationSender.sendSalesConfirmationMessage(rejectedMessage);
         }
     }
 
-    private void validateStockUpdateData(ProductStockDTO product){
+    private void validateStockUpdateData(ProductStockDTO product) {
         if (isEmpty(product) || isEmpty(product.getSalesId())) {
             throw new ValidationException("The product data and the sales ID must be informed.");
         }
-        if(isEmpty(product.getProducts())) {
-            throw new ValidationException("Sales products must be informed.");
+        if (isEmpty(product.getProducts())) {
+            throw new ValidationException("The sales' products must be informed.");
         }
         product
                 .getProducts()
                 .forEach(salesProduct -> {
-                    if(isEmpty(salesProduct.getQuantity()) || isEmpty(salesProduct.getProductId())) {
-                        throw new ValidationException("ProductId and Quantity must be informed.");
+                    if (isEmpty(salesProduct.getQuantity())
+                            || isEmpty(salesProduct.getProductId())) {
+                        throw new ValidationException("The productID and the quantity must be informed.");
                     }
                 });
     }
@@ -188,24 +195,24 @@ public class ProductService {
     Vai ser chamado lá dentro de updateProductStock*/
     @Transactional
     public void updateStock(ProductStockDTO product) {
-        var productForUpdate = new ArrayList<Product>();
+        var productsForUpdate = new ArrayList<Product>();
         product
                 .getProducts()
                 .forEach(salesProduct -> {
                     var existingProduct = findById(salesProduct.getProductId()); //Procura no banco
                     validateQuantityInStock(salesProduct, existingProduct);
                     existingProduct.updateStock(salesProduct.getQuantity());
-                    productForUpdate.add(existingProduct);
+                    productsForUpdate.add(existingProduct);
                 });
-        if(!isEmpty(productForUpdate)) {
-            productRepository.saveAll(productForUpdate); //altera o banco
-            var approvedMessage = new SalesConfirmationDTO(product.getSalesId(), SalesStatus.APPROVED);//produz a mensagem
+        if (!isEmpty(productsForUpdate)) {
+            productRepository.saveAll(productsForUpdate);//altera o banco
+            var approvedMessage = new SalesConfirmationDTO(product.getSalesId(), SalesStatus.APPROVED, product.getTransactionid()); //produz a mensagem
             salesConfirmationSender.sendSalesConfirmationMessage(approvedMessage);//envia a msg reproduzida p o RabbitMQ
         }
     }
 
-    private void validateQuantityInStock(ProductQuantityDTO salesProduct,  Product existingProduct) {
-        if(salesProduct.getQuantity() > existingProduct.getQuantityAvailable()) {
+    private void validateQuantityInStock(ProductQuantityDTO salesProduct, Product existingProduct) {
+        if (salesProduct.getQuantity() > existingProduct.getQuantityAvailable()) {
             throw new ValidationException(
                     String.format("The product %s is out of stock.", existingProduct.getId()));
         }
@@ -213,24 +220,58 @@ public class ProductService {
 
     public ProductSalesResponse findProductSales(Integer id) {
         var product = findById(id);
+//        var sales = getSalesByProductId(product.getId());
+//        return ProductSalesResponse.of(product, sales.getSalesIds());
         try {
             var sales = salesClient
                     .findSalesByProductId(product.getId())
                     .orElseThrow(() -> new ValidationException("The sales was not found by this product."));
-            return ProductSalesResponse.of(product, sales.getSalesId());
+            return ProductSalesResponse.of(product, sales.getSalesIds());
         } catch (Exception ex) {
             throw new ValidationException("There was an error trying to get the sales products");
         }
     }
 
-    public SuccessResponse checkProductsStock(ProductCheckStockRequest request) {
-        if (isEmpty(request) || isEmpty(request.getProducts())) {
-            throw new ValidationException("The request data must be informed.");
+    private SalesProductResponse getSalesByProductId(Integer productId) {
+        try {
+            var currentRequest = getCurrentRequest();
+//            var token = currentRequest.getHeader(AUTHORIZATION);
+            var transactionid = currentRequest.getHeader(TRANSACTION_ID);
+            var serviceid = currentRequest.getAttribute(SERVICE_ID);
+            log.info("Sending GET request to orders by productId with data {} | [transactionID: {} | serviceID: {}]",
+                    productId, transactionid, serviceid);
+            var response = salesClient
+                    .findSalesByProductId(productId/*, token, transactionid*/)    //<-- AQui
+                    .orElseThrow(() -> new ValidationException("The sales was not found by this product."));
+            log.info("Receiving response from orders by productId with data {} | [transactionID: {} | serviceID: {}]",
+                    new ObjectMapper().writeValueAsString(response), transactionid, serviceid);
+            return response;
+        } catch (Exception ex) {
+            log.error("Error trying to call Sales-API: {}", ex.getMessage());
+            throw new ValidationException("The sales could not be found.");
         }
-        request
-                .getProducts()
-                .forEach(this::validateStock);
-        return SuccessResponse.create("The stock is ok!");
+    }
+
+    public SuccessResponse checkProductsStock(ProductCheckStockRequest request) {
+        try {
+            var currentRequest = getCurrentRequest();
+            var transactionid = currentRequest.getHeader(TRANSACTION_ID);
+            var serviceid = currentRequest.getAttribute(SERVICE_ID);
+            log.info("Request to POST product stock with data {} | [transactionID: {} | serviceID: {}]",
+                    new ObjectMapper().writeValueAsString(request), transactionid, serviceid);
+            if (isEmpty(request) || isEmpty(request.getProducts())) {
+                throw new ValidationException("The request data and products must be informed.");
+            }
+            request
+                    .getProducts()
+                    .forEach(this::validateStock);
+            var response = SuccessResponse.create("The stock is ok!");
+            log.info("Response to POST product stock with data {} | [transactionID: {} | serviceID: {}]",
+                    new ObjectMapper().writeValueAsString(response), transactionid, serviceid);
+            return response;
+        } catch (Exception ex) {
+            throw new ValidationException(ex.getMessage());
+        }
     }
 
     private void validateStock(ProductQuantityDTO productQuantity) {
@@ -242,5 +283,4 @@ public class ProductService {
             throw new ValidationException(String.format("The product %s is out of stock.", product.getId()));
         }
     }
-
 }

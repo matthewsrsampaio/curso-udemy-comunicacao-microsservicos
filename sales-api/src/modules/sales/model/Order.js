@@ -1,3 +1,5 @@
+// O que eu quero salvar e como eu quero salvar
+
 import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
@@ -22,6 +24,14 @@ const OrderSchema = new Schema({
     },
     updatedAt: {
         type: Date,
+        required: true
+    },
+    transactionid: {
+        type: String,
+        required: true
+    },
+    serviceid: {
+        type: String,
         required: true
     }
 })

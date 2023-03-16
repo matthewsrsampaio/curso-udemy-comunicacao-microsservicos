@@ -1,8 +1,8 @@
 import AuthException from "./AuthException.js";
 import jwt from "jsonwebtoken";
 import { promisify } from "util";
-import * as secrets from "../constants/secrets.js";
-import * as httpStatus from "../constants/httpStatus.js";
+import * as secrets from "../constants/Secrets.js";
+import * as httpStatus from "../constants/HttpStatus.js";
 
 let emptySpace = " ";
 
