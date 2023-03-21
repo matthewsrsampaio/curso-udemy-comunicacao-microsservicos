@@ -11,7 +11,10 @@ const sequelize = new Sequelize(DB_NAME, DB_USER,DB_PASSWORD, {
         timestamps: false,
         underscored: true,
         underscoredAll: true,
-        freezeTableName: true
+        freezeTableName: true,
+    },
+    pool: {
+        acquire: 180000,
     },
 })
 

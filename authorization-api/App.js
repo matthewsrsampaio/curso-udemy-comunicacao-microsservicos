@@ -1,15 +1,22 @@
 import express from "express";
-import * as db from "./src/config/db/InitialData.js";
 import userRoutes from "./src/modules/user/routes/UserRoutes.js";
 import Tracing from "./src/config/Tracing.js";
+import {createInitialData} from "./src/config/db/InitialData.js";
 
 const app = express();
 const env = process.env;
 const PORT = env.PORT || 8080;
+const CONTAINER_ENV = "container";
 
-db.createInitialData();
+app.use(express.json());
+startApplication();
 
-app.use(Tracing);
+function startApplication() {
+    if(env.NODE_ENV !== CONTAINER_ENV) {
+        createInitialData();
+    }
+}
+
 app.get("/api/status", (req, res) => {
     return res.status(200).json({
         service: "Authorization-API",
@@ -18,7 +25,7 @@ app.get("/api/status", (req, res) => {
     });
 });
 
-app.use(express.json());
+app.use(Tracing);
 
 app.use(userRoutes);
 
