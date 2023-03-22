@@ -220,16 +220,8 @@ public class ProductService {
 
     public ProductSalesResponse findProductSales(Integer id) {
         var product = findById(id);
-//        var sales = getSalesByProductId(product.getId());
-//        return ProductSalesResponse.of(product, sales.getSalesIds());
-        try {
-            var sales = salesClient
-                    .findSalesByProductId(product.getId())
-                    .orElseThrow(() -> new ValidationException("The sales was not found by this product."));
-            return ProductSalesResponse.of(product, sales.getSalesIds());
-        } catch (Exception ex) {
-            throw new ValidationException("There was an error trying to get the sales products");
-        }
+        var sales = getSalesByProductId(product.getId());
+        return ProductSalesResponse.of(product, sales.getSalesIds());
     }
 
     private SalesProductResponse getSalesByProductId(Integer productId) {

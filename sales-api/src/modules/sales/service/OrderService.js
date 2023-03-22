@@ -9,30 +9,33 @@ class OrderService {
     async createOrder(req) {
         try {
             let orderData = req.body;
-            const {transactionid, serviceid} = req.headers;
-            console.info(`Request to POST new order with data ${JSON.stringify(orderData)} 
-            | [transactionID: ${transactionid} 
-            | serviceID: ${serviceid}]`);
+            const { transactionid, serviceid } = req.headers;
+            console.info(`Request to POST new order with data
+            ${JSON.stringify(orderData)} | [transactionID: ${transactionid} | serviceID: ${serviceid}]`
+            );
             this.validateOrderData(orderData);
             const { authUser } = req;
             const { authorization } = req.headers;
-            let order = this.createInitialOrderData(orderData, authUser, transactionid, serviceid); // atenção aqui
+            let order = this.createInitialOrderData(
+                orderData,
+                authUser,
+                transactionid,
+                serviceid
+            );
             await this.validateProductStock(order, authorization, transactionid);
             let createdOrder = await OrderRepository.save(order);
             this.sendMessage(createdOrder, transactionid);
             let response = {
                 status: SUCCESS,
-                createdOrder
+                createdOrder,
             };
-            console.info(`Response to POST login with data ${JSON.stringify(response)} 
-            | [transactionID: ${transactionid} 
-            | serviceID: ${serviceid}]`);
+            console.info(`Response to POST login with data
+            ${JSON.stringify(response)} | [transactionID: ${transactionid} | serviceID: ${serviceid}]`
+            );
             return response;
-        }catch (err) {
+        } catch (err) {
             return {
-                status: err.status
-                ? err.status
-                : INTERNAL_SERVER_ERROR,
+                status: err.status ? err.status : INTERNAL_SERVER_ERROR,
                 message: err.message,
             };
         }
@@ -97,8 +100,8 @@ class OrderService {
         try {
             const {id} = req.params;
             const {transactionid, serviceid} = req.headers;
-            console.info(`Request to GET order by ID. ${id} 
-            | [transactionID: ${transactionid} 
+            console.info(`Request to GET order by ID. ${id}
+            | [transactionID: ${transactionid}
             | serviceID: ${serviceid}]`);
             this.validateInformedId(id);
             const existingOrder = await OrderRepository.findById(id);
@@ -109,8 +112,8 @@ class OrderService {
                 status: SUCCESS,
                 existingOrder
             };
-            console.info(`Response to GET order by ID ${id}: ${JSON.stringify(response)} 
-            | [transactionID: ${transactionid} 
+            console.info(`Response to GET order by ID ${id}: ${JSON.stringify(response)}
+            | [transactionID: ${transactionid}
             | serviceID: ${serviceid}]`);
             return response;
         }catch (err) {
@@ -127,7 +130,7 @@ class OrderService {
         try {
             const { transactionid, serviceid } = req.headers;
             console.info(`Request to GET all orders.
-            | [transactionID: ${transactionid} 
+            | [transactionID: ${transactionid}
             | serviceID: ${serviceid}]`);
             const orders = await OrderRepository.findAll();
             if (!orders) {
@@ -137,8 +140,8 @@ class OrderService {
                 status: SUCCESS,
                 orders,
             };
-            console.info(`Response to GET all orders: ${JSON.stringify(response)} 
-            | [transactionID: ${transactionid} 
+            console.info(`Response to GET all orders: ${JSON.stringify(response)}
+            | [transactionID: ${transactionid}
             | serviceID: ${serviceid}]`);
             return response;
         } catch (err) {
@@ -155,8 +158,8 @@ class OrderService {
         try {
             const {productId} = req.params;
             const {transactionid, serviceid} = req.headers;
-            console.info(`Request to GET order by productID. ${productId} 
-            | [transactionID: ${transactionid} 
+            console.info(`Request to GET order by productID. ${productId}
+            | [transactionID: ${transactionid}
             | serviceID: ${serviceid}]`);
             this.validateInformedProductId(productId);
             const orders = await OrderRepository.findByProductId(productId);

@@ -6,9 +6,7 @@ import br.com.cursoudemy.productapi.modules.product.dto.ProductRequest;
 import br.com.cursoudemy.productapi.modules.product.dto.ProductResponse;
 import br.com.cursoudemy.productapi.modules.product.dto.ProductSalesResponse;
 import br.com.cursoudemy.productapi.modules.product.service.ProductService;
-import br.com.cursoudemy.productapi.modules.sales.dto.SalesProductResponse;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
