@@ -14,16 +14,15 @@ import org.springframework.stereotype.Component;
 public class SalesConfirmationSender {
 
     private final RabbitTemplate rabbitTemplate;
-
+    private final ObjectMapper objectMapper;
     @Value("${app-config.rabbit.exchange.product}")
     private String productTopicExchange;
-
     @Value("${app-config.rabbit.routingKey.sales-confirmation}")
     private String salesConfirmation;
 
     public void sendSalesConfirmationMessage(SalesConfirmationDTO message) {
         try{
-            log.info("Sending message: {}", new ObjectMapper().writeValueAsString(message));
+            log.info("Sending message: {}", objectMapper.writeValueAsString(message));
             rabbitTemplate.convertAndSend(productTopicExchange, salesConfirmation, message);
             log.info("Message was sent successfully.");
         }catch(Exception ex) {

@@ -40,6 +40,7 @@ public class ProductService {
     private final CategoryService categoryService;
     private final SalesConfirmationSender salesConfirmationSender;
     private final SalesClient salesClient;
+    private final ObjectMapper objectMapper;
 
     public ProductResponse save(ProductRequest request) {
         validateProductDataInformed(request);
@@ -227,16 +228,16 @@ public class ProductService {
     private SalesProductResponse getSalesByProductId(Integer productId) {
         try {
             var currentRequest = getCurrentRequest();
-//            var token = currentRequest.getHeader(AUTHORIZATION);
+            var token = currentRequest.getHeader(AUTHORIZATION);
             var transactionid = currentRequest.getHeader(TRANSACTION_ID);
             var serviceid = currentRequest.getAttribute(SERVICE_ID);
             log.info("Sending GET request to orders by productId with data {} | [transactionID: {} | serviceID: {}]",
                     productId, transactionid, serviceid);
             var response = salesClient
-                    .findSalesByProductId(productId/*, token, transactionid*/)    //<-- AQui
+                    .findSalesByProductId(productId, token, transactionid)    //<-- AQui
                     .orElseThrow(() -> new ValidationException("The sales was not found by this product."));
             log.info("Receiving response from orders by productId with data {} | [transactionID: {} | serviceID: {}]",
-                    new ObjectMapper().writeValueAsString(response), transactionid, serviceid);
+                    objectMapper.writeValueAsString(response), transactionid, serviceid);
             return response;
         } catch (Exception ex) {
             log.error("Error trying to call Sales-API: {}", ex.getMessage());
@@ -250,7 +251,7 @@ public class ProductService {
             var transactionid = currentRequest.getHeader(TRANSACTION_ID);
             var serviceid = currentRequest.getAttribute(SERVICE_ID);
             log.info("Request to POST product stock with data {} | [transactionID: {} | serviceID: {}]",
-                    new ObjectMapper().writeValueAsString(request), transactionid, serviceid);
+                    objectMapper.writeValueAsString(request), transactionid, serviceid);
             if (isEmpty(request) || isEmpty(request.getProducts())) {
                 throw new ValidationException("The request data and products must be informed.");
             }
@@ -259,7 +260,7 @@ public class ProductService {
                     .forEach(this::validateStock);
             var response = SuccessResponse.create("The stock is ok!");
             log.info("Response to POST product stock with data {} | [transactionID: {} | serviceID: {}]",
-                    new ObjectMapper().writeValueAsString(response), transactionid, serviceid);
+                    objectMapper.writeValueAsString(response), transactionid, serviceid);
             return response;
         } catch (Exception ex) {
             throw new ValidationException(ex.getMessage());

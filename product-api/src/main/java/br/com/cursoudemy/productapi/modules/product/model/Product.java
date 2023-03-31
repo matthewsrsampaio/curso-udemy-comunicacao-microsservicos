@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Table(name = "PRODUCT")
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "NAME", nullable = false)

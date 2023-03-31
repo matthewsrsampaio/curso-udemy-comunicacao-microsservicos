@@ -14,7 +14,7 @@ import org.springframework.beans.BeanUtils;
 @Table(name = "SUPPLIER")
 public class Supplier {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "NAME", nullable = false)

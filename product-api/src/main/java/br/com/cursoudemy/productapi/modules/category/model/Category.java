@@ -14,7 +14,7 @@ import org.springframework.beans.BeanUtils;
 @Table(name = "CATEGORY")
 public class Category {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "DESCRIPTION", nullable = false)
