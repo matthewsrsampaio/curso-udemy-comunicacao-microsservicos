@@ -37,10 +37,11 @@ spring:
 
   #    Setando o serviço do rabbitMQ
   rabbitmq:
-    host: ${RABBIT_MQ_HOST:localhost}
-    port: ${RABBIT_MQ_PORT:5672}
-    username: ${RABBIT_MQ_USER:guest}
-    password: ${RABBIT_MQ_PASSWORD:guest}
+    host: ${RABBIT_MQ_HOST:beaver.rmq.cloudamqp.com} #valor default: localhost
+    port: ${RABBIT_MQ_PORT:5672}  #valor default: 5672
+    username: ${RABBIT_MQ_USER:fhwzffwb} #valor default: guest
+    password: ${RABBIT_MQ_PASSWORD:7dUwT5K5EeK_HJK0WY0tD0HciB7loqpz} #valor default: guest
+    virtual-host: ${RABBIT_MQ_VHOST:fhwzffwb} #O valor default é vazio Ex: ${RABBIT_MQ_VHOST:}
 
 # Aqui em baixo estarão coisas que são configuradas manualmente e localmente.
 app-config:
